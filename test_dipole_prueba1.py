@@ -12,6 +12,25 @@ from dipole_prueba1 import (
     train_dipole_estimator_with_position
 )
 
+def test_hertzian_dipole_plot():
+    theta_d = 0.0
+    phi_d = 0.0
+
+    theta_obs = np.linspace(0, 2*np.pi, 361)
+    phi_obs = 0.0
+    
+    E_th_1, E_phi_1 = hertzian_dipole_field_with_position(theta_d, phi_d, 0.0, 0.0, 0.5, theta_obs, phi_obs)
+    E_th_2, E_phi_2 = hertzian_dipole_field_with_position(theta_d, phi_d, 0.0, 0.0, -0.5, theta_obs, phi_obs)
+
+    E_mod = np.abs(E_th_1 + E_th_2)
+    AF = E_mod / E_mod.max()
+    
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+    # ax.set_theta_zero_location("W")
+    ax.plot(theta_obs, AF)
+    plt.show()
+
 class TestDipoleRNN:
     """Test suite for the dipole RNN implementation"""
     
@@ -252,6 +271,30 @@ class TestDipoleRNN:
         assert variation > 0.02, f"Expected AF variation > 0.02, got {variation:.6f}"
         print("✓ Array factor λ/2 spacing test passed")
 
+    def test_array_factor_lambda_spacing(self):
+        """Test array factor for λ spaced dipoles"""
+        theta_d = torch.tensor(0.0) 
+        phi_d = torch.tensor(0.0)
+        
+        theta_test = np.linspace(0, np.pi, 361)
+        phi_test = torch.zeros_like(theta_test)
+        
+        E1_theta, _ = hertzian_dipole_field_with_position(theta_d, phi_d, 0.0, 0.0, -0.5, theta_test, phi_test) 
+        E2_theta, _ = hertzian_dipole_field_with_position(theta_d, phi_d, 0.0, 0.0, 0.5, theta_test, phi_test)  
+        
+        E_total = E1_theta + E2_theta
+        AF_magnitude = torch.abs(E_total) / E_total.max
+        
+        # Zeros
+        assert np.isclose(AF_magnitude[theta_test[60]], 0.0)
+        assert np.isclose(AF_magnitude[theta_test[120]], 0.0)
+
+        # Maximums
+        assert np.isclose(AF_magnitude[theta_test[0]], 1.0)
+        assert np.isclose(AF_magnitude[theta_test[90]], 1.0)
+        assert np.isclose(AF_magnitude[theta_test[180]], 1.0)
+        
+
     def test_phase_difference_calculation(self):
         """Verify phase shift calculations are correct"""
         theta_d = torch.tensor(np.pi/2)
@@ -302,6 +345,10 @@ class TestDipoleRNN:
             sys.stdout = old_stdout
         
         print("Training integration test passed")
+
+
+
+
 
 
 def run_all_tests():
